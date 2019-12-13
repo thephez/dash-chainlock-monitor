@@ -22,7 +22,7 @@ def create_connection(db_file):
         conn = sqlite3.connect(db_file)
     except Exception as e:
         print(e)
- 
+
     return conn
 
 
@@ -35,15 +35,12 @@ def is_existing_block(conn, blockhash):
     cur = conn.cursor()
     with conn:
         for row in cur.execute("SELECT ChainLock FROM blocks WHERE Hash = ?", (blockhash,)):
-            #print('Block in db')
             return True
         else:
-            #print('Block not found in db')
             return False
 
-    
+
 def insert_block_data(conn, data):
-    #print('inserting new block')
     cur = conn.cursor()
     with conn:
         try:
@@ -81,7 +78,7 @@ try:
 
             receive_time = datetime.datetime.utcnow()
             blockhash = binascii.hexlify(body).decode("utf-8")
-            
+
             existing_block = is_existing_block(conn, blockhash)
 
             if not existing_block:
@@ -89,13 +86,13 @@ try:
                 insert_block_data(conn, data)
             else:
                 print('Block {} already in DB. Skipping...'.format(blockhash))
-                
+
         elif topic == "hashchainlock":
             print('- HASH CHAINLOCK ('+sequence+') -')
 
             receive_time = datetime.datetime.utcnow()
             blockhash = binascii.hexlify(body).decode("utf-8")
-            
+
             existing_block = is_existing_block(conn, blockhash)
 
             if existing_block:
@@ -113,6 +110,6 @@ try:
                 data = (blockhash, True, receive_time)
                 insert_block_data(conn, data)
 
-            
+
 except KeyboardInterrupt:
     zmqContext.destroy()
