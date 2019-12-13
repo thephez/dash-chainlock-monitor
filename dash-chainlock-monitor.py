@@ -50,6 +50,40 @@ def insert_block_data(conn, data):
             raise
     return True
 
+def update_block_data(conn, data):
+    cur = conn.cursor()
+    with conn:
+        try:
+            cur.execute("UPDATE blocks SET Chainlock = ?, ChainLockSeenTime = ? WHERE Hash = ?", data)
+        except Exception as e:
+            print(data)
+            raise
+    return True
+
+def process_zmq_message(topic, body):
+    block_seen_time = datetime.datetime.utcnow()
+    blockhash = binascii.hexlify(body).decode("utf-8")
+    print('{}\tTopic received: {}\tData: {}'.format(block_seen_time, topic, blockhash))
+
+    chainlock_status = False
+    chainlock_seen_time = None
+
+    # Set ChainLock Status
+    if topic == "hashchainlock":
+        chainlock_status = True
+        chainlock_seen_time = block_seen_time
+
+    existing_block = is_existing_block(conn, blockhash)
+
+    if existing_block:
+        # Update Only
+        data = (chainlock_status, chainlock_seen_time, blockhash)
+        update_block_data(conn, data)
+    else:
+        # Insert
+        data = (blockhash, chainlock_status, block_seen_time, chainlock_seen_time)
+        insert_block_data(conn, data)
+
 
 # Database connection setup
 conn = create_connection('dash-chainlock-data.db')
@@ -68,6 +102,9 @@ try:
         topic = str(msg[0].decode("utf-8"))
         body = msg[1]
         sequence = "Unknown"
+
+        process_zmq_message(topic, body)
+        continue # Short circuit
 
         if len(msg[-1]) == 4:
           msgSequence = struct.unpack('<I', msg[-1])[-1]
