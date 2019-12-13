@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Copyright (c) 2014-2016 The Bitcoin Core developers
+# Copyright (c) 2019 thephez
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -103,49 +104,12 @@ try:
         body = msg[1]
         sequence = "Unknown"
 
-        process_zmq_message(topic, body)
-        continue # Short circuit
-
         if len(msg[-1]) == 4:
           msgSequence = struct.unpack('<I', msg[-1])[-1]
           sequence = str(msgSequence)
 
-        if topic == "hashblock":
-            print('- HASH BLOCK ('+sequence+') -')
-
-            receive_time = datetime.datetime.utcnow()
-            blockhash = binascii.hexlify(body).decode("utf-8")
-
-            existing_block = is_existing_block(conn, blockhash)
-
-            if not existing_block:
-                data = (blockhash, False, receive_time, None)
-                insert_block_data(conn, data)
-            else:
-                print('Block {} already in DB. Skipping...'.format(blockhash))
-
-        elif topic == "hashchainlock":
-            print('- HASH CHAINLOCK ('+sequence+') -')
-
-            receive_time = datetime.datetime.utcnow()
-            blockhash = binascii.hexlify(body).decode("utf-8")
-
-            existing_block = is_existing_block(conn, blockhash)
-
-            if existing_block:
-                # Only update Chainlock field
-                print(blockhash)
-                cur = conn.cursor()
-                with conn:
-                    try:
-                        cur.execute("UPDATE blocks SET Chainlock = ?, ChainLockSeenTime = ? WHERE Hash = ?", (True, receive_time, blockhash,))
-                    except Exception as e:
-                        print(data)
-                        raise
-            else:
-                # Insert block
-                data = (blockhash, True, receive_time)
-                insert_block_data(conn, data)
+        if topic == "hashblock" or topic == "hashchainlock":
+            process_zmq_message(topic, body)
 
 
 except KeyboardInterrupt:
