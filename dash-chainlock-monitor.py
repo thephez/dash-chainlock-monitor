@@ -98,8 +98,14 @@ def process_zmq_message(topic, body):
         data = (blockhash, chainlock_status, block_seen_time, chainlock_seen_time)
         insert_block_data(conn, data)
 
+# Sends a slack notification with the webhook from secret.txt
 def send_notification(text):
     print(text)
+    secret_file = open("secret.txt", "r")
+    if secret_file.mode == 'r':
+        secret = secret_file.read()
+
+    os.popen("curl -X POST -H 'Content-type: application/json' --data '{\"text\":\" " + text + " \"}' " + secret)
 
 # Database connection setup
 conn = create_connection('dash-chainlock-data.db')
