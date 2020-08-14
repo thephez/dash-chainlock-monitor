@@ -9,6 +9,7 @@ import zmq
 import struct
 import sqlite3
 import datetime
+import os
 
 port = 20003
 
@@ -58,6 +59,17 @@ def update_block_data(conn, data):
             raise
     return True
 
+def is_last_block_chainlocked(conn):
+    cur = conn.cursor()
+    with conn:
+        for row in cur.execute("SELECT Hash, ChainLock, BlockSeenTime FROM blocks ORDER BY BlockSeenTime DESC LIMIT 1"):
+            if row[1] == 0:
+                message = 'ChainLock not seen for previous block received at: {}\nBlock hash: {}\nhttps://explorer.dash.org/insight/block/{}'.format(row[2], row[0], row[0])
+                send_notification(message)
+                return False
+            else:
+                return True        
+
 def process_zmq_message(topic, body):
     block_seen_time = datetime.datetime.utcnow()
     blockhash = binascii.hexlify(body).decode("utf-8")
@@ -78,10 +90,16 @@ def process_zmq_message(topic, body):
         data = (chainlock_status, chainlock_seen_time, blockhash)
         update_block_data(conn, data)
     else:
+        # Check if ChainLock was seen for previous block
+        # Note: Will produce false failures while Dash Core is syncing 
+        is_last_block_chainlocked(conn)
+
         # Insert
         data = (blockhash, chainlock_status, block_seen_time, chainlock_seen_time)
         insert_block_data(conn, data)
 
+def send_notification(text):
+    print(text)
 
 # Database connection setup
 conn = create_connection('dash-chainlock-data.db')
