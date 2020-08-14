@@ -23,14 +23,12 @@ def create_connection(db_file):
         conn = sqlite3.connect(db_file)
     except Exception as e:
         print(e)
-
+ 
     return conn
-
 
 def create_table(conn):
     cur = conn.cursor()
     cur.execute("CREATE TABLE IF NOT EXISTS blocks(Hash TEXT, ChainLock BOOL, BlockSeenTime TEXT, ChainLockSeenTime TEXT, PRIMARY KEY (Hash))")
-
 
 def is_existing_block(conn, blockhash):
     cur = conn.cursor()
@@ -39,7 +37,6 @@ def is_existing_block(conn, blockhash):
             return True
         else:
             return False
-
 
 def insert_block_data(conn, data):
     cur = conn.cursor()
@@ -75,7 +72,7 @@ def process_zmq_message(topic, body):
         chainlock_seen_time = block_seen_time
 
     existing_block = is_existing_block(conn, blockhash)
-
+    
     if existing_block:
         # Update Only
         data = (chainlock_status, chainlock_seen_time, blockhash)
@@ -107,10 +104,9 @@ try:
         if len(msg[-1]) == 4:
           msgSequence = struct.unpack('<I', msg[-1])[-1]
           sequence = str(msgSequence)
-
+        
         if topic == "hashblock" or topic == "hashchainlock":
             process_zmq_message(topic, body)
-
-
+            
 except KeyboardInterrupt:
     zmqContext.destroy()
