@@ -1,0 +1,1 @@
+select * from blocks where chainlock = 0
