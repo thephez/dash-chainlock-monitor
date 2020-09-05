@@ -107,6 +107,8 @@ def send_notification(text):
 
     os.popen("curl -X POST -H 'Content-type: application/json' --data '{\"text\":\" " + text + " \"}' " + secret)
 
+send_notification('ChainLock monitoring startup')
+
 # Database connection setup
 conn = create_connection('dash-chainlock-data.db')
 create_table(conn)
