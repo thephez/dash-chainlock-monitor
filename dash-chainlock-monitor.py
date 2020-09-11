@@ -10,6 +10,10 @@ import struct
 import sqlite3
 import datetime
 import os
+import sys
+import time
+from Naked.toolshed.shell import execute_js
+from Naked.toolshed.shell import muterun_js
 
 port = 20003
 
@@ -47,6 +51,28 @@ def insert_block_data(conn, data):
         except Exception as e:
             print(data)
             raise
+
+    # Submit to Platform app
+    #data = (blockhash, chainlock_status, block_seen_time, chainlock_seen_time)
+    blockhash = data[0]
+    chainlock_status = data[1]
+    block_seen_time = int(time.mktime(data[2].timetuple()))
+    
+    if data[3] is not None:
+        chainlock_seen_time = int(time.mktime(data[3].timetuple()))
+    else:
+        chainlock_seen_time = 0
+
+    args = '{} {} {} {}'.format(blockhash, chainlock_status, block_seen_time, chainlock_seen_time)
+    #response = execute_js('node/submitBlockData.js', args) # Same as next line but displays stdout, etc.
+    response = muterun_js('node/submitBlockData.js', args)
+    print('{} {}'.format(datetime.datetime.now(), response.stdout))
+    #print(response.exitcode)
+    if response.exitcode == 0:
+        print(response.stdout)
+    else:
+        sys.stderr.write(response.stderr)
+    
     return True
 
 def update_block_data(conn, data):
@@ -54,6 +80,30 @@ def update_block_data(conn, data):
     with conn:
         try:
             cur.execute("UPDATE blocks SET Chainlock = ?, ChainLockSeenTime = ? WHERE Hash = ?", data)
+
+
+
+
+            # Submit to Platform app
+            #data = (chainlock_status, chainlock_seen_time, blockhash)
+            chainlock_status = data[0]
+            chainlock_seen_time = int(time.mktime(data[1].timetuple()))
+            blockhash = data[2]
+
+            args = '{} {} {}'.format(blockhash, chainlock_status, chainlock_seen_time)
+            response = execute_js('node/updateBlockData.js', args) # Same as next line but displays stdout, etc.
+            #response = muterun_js('node/updateBlockData.js', args)
+            #print('{} {}'.format(datetime.datetime.now(), response.stdout))
+            ##print(response.exitcode)
+            #if response.exitcode == 0:
+            #    print(response.stdout)
+            #else:
+            #    sys.stderr.write(response.stderr)
+
+
+
+
+
         except Exception as e:
             print(data)
             raise
