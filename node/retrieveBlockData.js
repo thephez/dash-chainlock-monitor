@@ -4,7 +4,7 @@ const clientOpts = {
   network: 'evonet',
   apps: {
     chainLockMonitor: {
-      contractId: 'mLZ2AcwHJ39QN7iA1nxnQB7QhqBfeSPnrbr7rkGSCcP'
+      contractId: '8xqvgRrswwphWRgasWz8gzqspgM6rrT9VrDHkBHVgCVB'
     }
   }
 };
@@ -14,13 +14,18 @@ const client = new Dash.Client(clientOpts);
 const getDocuments = async function () {
   try {
     const queryOpts = {
-      limit: 10,
+      limit: 2,
+      orderBy: [['receiveTime', 'desc']],
     };
     const documents = await client.platform.documents.get(
       'chainLockMonitor.blockInfo',
       queryOpts
     );
-    console.dir({documents}, {depth:10})
+    for (var d of documents){
+      console.log(d.createdAt)
+      console.log(d.updatedAt)
+      console.log(d.getData())
+    }
     return documents;
 
   } catch (e) {

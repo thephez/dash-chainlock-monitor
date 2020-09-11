@@ -13,27 +13,43 @@ const registerContract = async function () {
       blockInfo: {
         properties: {
           hash: {
-            type: "string"
+            type: "string",
+            maxLength: 64,
+            description: "Block hash"
           },
           receiveTime: {
-            type: "integer"
+            type: "integer",
+            description: "Timestamp indicating when block was seen by node"
           },
           chainLockTime: {
-            type: "integer"
+            type: "integer",
+            description: "Timestamp indicating when ChainLock was seen by node"
           },
           isChainLocked: {
-            type: "boolean"
+            type: "boolean",
+            description: "True if ChainLock received"
           },
           timeToLock: {
-            type: "integer"
+            type: "integer",
+            description: "(receiveTime - chainLockTime)"
           }
         },
         indices: [
           {
+            properties: [ { "hash": "desc" } ],
+            //"unique": true
+          },
+          {
             properties: [ { "isChainLocked": "desc" } ]
-          }
+          },
+          {
+            properties: [ { "receiveTime": "desc" } ]
+          },
+          {
+            properties: [ { "chainLockTime": "desc" } ]
+          },          
         ],
-        required: ["$createdAt", "$updatedAt"],
+        required: ["$createdAt", "$updatedAt", "hash", "receiveTime", "chainLockTime", "isChainLocked", "timeToLock"],
         additionalProperties: false
       }};
     

@@ -4,23 +4,24 @@ const clientOpts = {
   network: 'evonet',
   apps: {
     chainLockMonitor: {
-      contractId: 'mLZ2AcwHJ39QN7iA1nxnQB7QhqBfeSPnrbr7rkGSCcP'
+      contractId: '8xqvgRrswwphWRgasWz8gzqspgM6rrT9VrDHkBHVgCVB'
     }
   }
 };
 const client = new Dash.Client(clientOpts);
 
-const submitBlockInfoDocument = async function (hash, receiveTime, isChainLocked) {
+const submitBlockInfoDocument = async function (hash, receiveTime, isChainLocked, chainLockTime, timeToLock) {
   const platform = client.platform;
-  console.log('Receive time:'+receiveTime)
+  //console.log('Receive time:'+receiveTime)
   try {
     const identity = await platform.identities.get('8DpCxc6CY1vHQzQVv8EezN4fpKis5K2YuxGYRSiccsC8');
-    
-   
+      
     docProperties = {
       hash: hash,
       receiveTime: receiveTime,
       isChainLocked: isChainLocked,
+      chainLockTime: chainLockTime,
+      timeToLock: timeToLock
     }
      
     // Create the document
@@ -32,9 +33,7 @@ const submitBlockInfoDocument = async function (hash, receiveTime, isChainLocked
     //console.dir({blockInfoDocument})
     const documentBatch = {
       create: [blockInfoDocument],
-      replace: [],
-      delete: [],
-    }
+    };
 
     // Sign and submit the document(s)
     await platform.documents.broadcast(documentBatch, identity);
@@ -46,8 +45,18 @@ const submitBlockInfoDocument = async function (hash, receiveTime, isChainLocked
   }
 };
 
-const hash = process.argv[2]
-const isChainLocked = (process.argv[3] == 'true')
-const receiveTime = parseInt(process.argv[4])
+*/
+const hash = process.argv[2];
+const isChainLocked = (process.argv[3] == 'True');
+const receiveTime = parseInt(process.argv[4]);
+const chainLockTime = parseInt(process.argv[5]);
 
-submitBlockInfoDocument(hash, receiveTime, isChainLocked);
+let timeToLock = 0;
+if (chainLockTime > 0) {
+  timeToLock = chainLockTime - receiveTime;
+} else {
+  timeToLock = 0;
+}
+
+
+submitBlockInfoDocument(hash, receiveTime, isChainLocked, chainLockTime, timeToLock);
