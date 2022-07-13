@@ -28,7 +28,7 @@ def create_connection(db_file):
         conn = sqlite3.connect(db_file)
     except Exception as e:
         print(e)
- 
+
     return conn
 
 def create_table(conn):
@@ -57,7 +57,7 @@ def insert_block_data(conn, data):
     blockhash = data[0]
     chainlock_status = data[1]
     block_seen_time = int(time.mktime(data[2].timetuple()))
-    
+
     if data[3] is not None:
         chainlock_seen_time = int(time.mktime(data[3].timetuple()))
     else:
@@ -65,14 +65,14 @@ def insert_block_data(conn, data):
 
     args = '{} {} {} {}'.format(blockhash, chainlock_status, block_seen_time, chainlock_seen_time)
     #response = execute_js('node/submitBlockData.js', args) # Same as next line but displays stdout, etc.
-    response = muterun_js('node/submitBlockData.js', args)
-    print('{} {}'.format(datetime.datetime.now(), response.stdout))
-    #print(response.exitcode)
-    if response.exitcode == 0:
-        print(response.stdout)
-    else:
-        sys.stderr.write(response.stderr)
-    
+    #response = muterun_js('node/submitBlockData.js', args)
+    #print('{} {}'.format(datetime.datetime.now(), response.stdout))
+    ##print(response.exitcode)
+    #if response.exitcode == 0:
+    #    print(response.stdout)
+    #else:
+    #    sys.stderr.write(response.stderr)
+
     return True
 
 def update_block_data(conn, data):
@@ -82,24 +82,30 @@ def update_block_data(conn, data):
             cur.execute("UPDATE blocks SET Chainlock = ?, ChainLockSeenTime = ? WHERE Hash = ?", data)
 
 
-
-
             # Submit to Platform app
             #data = (chainlock_status, chainlock_seen_time, blockhash)
             chainlock_status = data[0]
-            chainlock_seen_time = int(time.mktime(data[1].timetuple()))
-            blockhash = data[2]
+            if chainlock_status == False:
+                print('nothing to update. CL is false')
+            try:
+                if data[1] is None:
+                    print('\nuh-oh data[1] is none! Not actually updating ChainLock \n')
+                else:
+                    chainlock_seen_time = int(time.mktime(data[1].timetuple()))
+                    blockhash = data[2]
 
-            args = '{} {} {}'.format(blockhash, chainlock_status, chainlock_seen_time)
-            response = execute_js('node/updateBlockData.js', args) # Same as next line but displays stdout, etc.
-            #response = muterun_js('node/updateBlockData.js', args)
-            #print('{} {}'.format(datetime.datetime.now(), response.stdout))
-            ##print(response.exitcode)
-            #if response.exitcode == 0:
-            #    print(response.stdout)
-            #else:
-            #    sys.stderr.write(response.stderr)
-
+                    args = '{} {} {}'.format(blockhash, chainlock_status, chainlock_seen_time)
+                    #response = execute_js('node/updateBlockData.js', args) # Same as next line but displays stdout, etc.
+                    #response = muterun_js('node/updateBlockData.js', args)
+                    ##print('{} {}'.format(datetime.datetime.now(), response.stdout))
+                    ###print(response.exitcode)
+                    #if response.exitcode == 0:
+                    #    print(response.stdout)
+                    #else:
+                    #    sys.stderr.write(response.stderr)
+            except Exception as ex:
+                print('\n\nException encountered but not throwing. Debug this!\n\n')
+                print(ex)
 
 
 
@@ -118,7 +124,7 @@ def is_last_block_chainlocked(conn):
                 send_notification(message)
                 return False
             else:
-                return True        
+                return True
 
 def process_zmq_message(topic, body):
     block_seen_time = datetime.datetime.utcnow()
@@ -134,7 +140,7 @@ def process_zmq_message(topic, body):
         chainlock_seen_time = block_seen_time
 
     existing_block = is_existing_block(conn, blockhash)
-    
+
     if existing_block:
         # Update Only
         data = (chainlock_status, chainlock_seen_time, blockhash)
@@ -180,9 +186,9 @@ try:
         if len(msg[-1]) == 4:
           msgSequence = struct.unpack('<I', msg[-1])[-1]
           sequence = str(msgSequence)
-        
+
         if topic == "hashblock" or topic == "hashchainlock":
             process_zmq_message(topic, body)
-            
+
 except KeyboardInterrupt:
     zmqContext.destroy()
