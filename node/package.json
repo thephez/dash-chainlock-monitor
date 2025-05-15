@@ -1,0 +1,16 @@
+{
+  "name": "chainlock-monitor",
+  "version": "1.0.0",
+  "main": "register-contract.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@dashevo/dashd-zmq": "^1.2.1",
+    "dash": "^4.5.1",
+    "dotenv": "^16.4.5"
+  }
+}

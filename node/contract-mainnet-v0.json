@@ -1,0 +1,63 @@
+{
+  "blockInfo": {
+    "type": "object",
+    "properties": {
+      "hash": {
+        "position": 0,
+        "type": "array",
+        "byteArray": true,
+        "description": "Block hash (32 raw bytes) - leading zeros may be removed",
+        "minItems": 16,
+        "maxItems": 32
+      },
+      "receiveTime": {
+        "position": 1,
+        "type": "integer",
+        "description": "Timestamp indicating when block was seen by node",
+        "minimum": 0
+      },
+      "isChainLocked": {
+        "position": 2,
+        "type": "boolean",
+        "description": "True if ChainLock received"
+      },
+      "timeToLock": {
+        "position": 3,
+        "type": "integer",
+        "description": "receiveTime - chainLockTime",
+        "minimum": 0
+      }
+    },
+    "indices": [
+      {
+        "name": "BlockHash",
+        "properties": [ { "hash": "asc" } ],
+        "unique": true
+      },
+      {
+        "name": "CreatedAt",
+        "properties": [ { "$createdAt": "asc" } ],
+        "unique": true
+      },
+      {
+        "name": "UpdatedAt",
+        "properties": [ { "$updatedAt": "asc" } ],
+        "unique": true
+      },
+      {
+        "name": "IsChainlocked",
+        "properties": [ { "isChainLocked": "asc" } ]
+      },
+      {
+        "name": "ReceiveTime",
+        "properties": [ { "receiveTime": "asc" } ]
+      }
+    ],
+    "required": [
+      "hash",
+      "$createdAt",
+      "$updatedAt"
+    ],
+    "additionalProperties": false
+  }
+}

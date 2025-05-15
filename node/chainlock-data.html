@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dash ChainLock Data</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding-bottom: 60px; /* Space for the fixed footer */
+      box-sizing: border-box;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #f0f2f5;
+    }
+    #content {
+      margin: 20px auto;
+      max-width: 1000px;
+      overflow-y: auto;
+    }
+    #controls {
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      max-width: 1000px;
+    }
+    input[type="number"] {
+      width: 100px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-right: 10px;
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #012060;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s, transform 0.3s;
+    }
+    button:hover {
+      background-color: #008de4;
+      transform: translateY(-2px);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+    }
+    table, th, td {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+    }
+    th {
+      background-color: #012060;
+      color: #f0f2f5;
+      text-align: left;
+      cursor: pointer;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    th.sorted-asc::after {
+      content: " 🔼";
+    }
+    th.sorted-desc::after {
+      content: " 🔽";
+    }
+
+    /* Add the alternating row background styles here */
+    tr:nth-child(odd) {
+      background-color: #f9f9f9;
+    }
+    tr:nth-child(even) {
+      background-color: #ffffff;
+    }
+
+    /* Footer styling to fix it at the bottom */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #012060;
+      color: white;
+      text-align: center;
+      padding: 0px;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    }
+    footer a {
+      color: #008de4;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center; margin-top: 20px; color: #012060;">Dash ChainLock Data</h1>
+
+  <div id="controls">
+    <label for="documentLimit" style="margin-right: 10px; font-weight: bold; color: #333;">Number of results to load (max 100):</label>
+    <input type="number" id="documentLimit" min="1" max="100" value="25">
+    <div style="margin-left: 20px; margin-right: 20px; font-weight: bold; color: #333; display: inline-block;">
+      Order:
+      <label style="margin-left: 10px;">
+        <input type="radio" name="sortOrder" value="asc"> Ascending
+      </label>
+      <label style="margin-left: 10px;">
+        <input type="radio" name="sortOrder" value="desc" checked> Descending
+      </label>
+    </div>
+    <button onclick="fetchDocuments()">Load Documents</button>
+  </div>
+
+  <div id="content"></div>
+
+  <!-- Footer with a link to Dash.org -->
+  <footer>
+    <p>Built using <a href="https://docs.dash.org/platform" target="_blank">Dash Platform</a></p>
+  </footer>
+
+  <!-- Include Dash SDK from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/dash"></script>
+  <script>
+    const clientOptions = {
+      network: 'testnet', // or 'mainnet' if you're using production network
+      apps: {
+        myContract: {
+          contractId: '7m6ewgWi567TvpMpM86Lz6gWdf9cfqCFgxT41CHz7k8y',
+        },
+      },
+    };
+
+    let documents = [];
+    let currentSortColumn = null;
+    let currentSortOrder = 'asc'; // 'asc' or 'desc'
+
+    // Create Dash client instance
+    const client = new Dash.Client(clientOptions);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Automatically load 25 results when the page is opened
+      fetchDocuments();
+    });
+
+    async function fetchDocuments() {
+      const contentDiv = document.getElementById('content');
+      const limitInput = document.getElementById('documentLimit');
+      const sortOrder = document.querySelector('input[name="sortOrder"]:checked').value;
+      
+      let limit = parseInt(limitInput.value);
+
+      // Validate the limit to ensure it does not exceed 100
+      if (isNaN(limit) || limit < 1 || limit > 100) {
+        alert("Please enter a valid number between 1 and 100.");
+        return;
+      }
+
+      contentDiv.innerHTML = 'Loading...';
+
+      try {
+        documents = await client.platform.documents.get('myContract.blockInfo', {
+          limit,
+          where: [["receiveTime", ">", 0]],
+          orderBy: [["receiveTime", sortOrder]], // Use selected order
+        });
+
+        contentDiv.innerHTML = ''; // Clear loading message
+
+        if (documents.length > 0) {
+          renderTable();
+        } else {
+          contentDiv.innerHTML = 'No documents found.';
+        }
+
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        contentDiv.innerHTML = 'Failed to load documents. Check console for details.';
+      } finally {
+        client.disconnect(); // Ensure client disconnects after each request
+      }
+    }
+
+    function renderTable() {
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = '';
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const tbody = document.createElement('tbody');
+
+      // Create table header
+      const headerRow = document.createElement('tr');
+      const headers = [
+        { text: "Block Hash", key: "hash" },
+        { text: "ChainLocked", key: "isChainLocked" },
+        { text: "Receive Time", key: "receiveTime" },
+        // { text: "ChainLock Time", key: "chainLockTime" },
+        { text: "Time to Lock", key: "timeToLock" }
+      ];
+
+      headers.forEach(header => {
+        const th = document.createElement('th');
+        th.innerText = header.text;
+        th.dataset.key = header.key;
+        th.addEventListener('click', () => sortTable(header.key));
+        headerRow.appendChild(th);
+      });
+
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      // Add data rows
+      documents.forEach(doc => {
+        const data = doc.getData();
+        const row = document.createElement('tr');
+
+        // Hash Cell as a link
+        const hashCell = document.createElement('td');
+        const fullHash = padHashToFullLength(base64ToHex(data.hash));
+        const hashLink = document.createElement('a');
+        hashLink.href = `https://insight.dash.org/insight/block/${fullHash}`;
+        hashLink.target = '_blank';
+        hashLink.innerText = fullHash;
+        hashCell.appendChild(hashLink);
+        row.appendChild(hashCell);
+
+        // Is ChainLocked Cell with Checkbox
+        const isChainLockedCell = document.createElement('td');
+        isChainLockedCell.innerText = data.isChainLocked ? '✅' : '❌';
+        row.appendChild(isChainLockedCell);
+
+        // Receive Time Cell
+        const receiveTimeCell = document.createElement('td');
+        receiveTimeCell.innerText = formatTimestamp(data.receiveTime);
+        receiveTimeCell.dataset.value = data.receiveTime; // For sorting purposes
+        row.appendChild(receiveTimeCell);
+
+        // ChainLock Time Cell
+        // const chainLockTimeCell = document.createElement('td');
+        // chainLockTimeCell.innerText = formatTimestamp(data.chainLockTime);
+        // chainLockTimeCell.dataset.value = data.chainLockTime; // For sorting purposes
+        // row.appendChild(chainLockTimeCell);
+
+        // Time to Lock Cell
+        const timeToLockCell = document.createElement('td');
+        timeToLockCell.innerText = data.timeToLock;
+        row.appendChild(timeToLockCell);
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+
+      // Append table to contentDiv
+      contentDiv.appendChild(table);
+    }
+
+    // Function to sort the table by a given column
+    function sortTable(columnKey) {
+      if (currentSortColumn === columnKey) {
+        // Toggle sort order if clicking the same column
+        currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        // Otherwise, set to ascending by default
+        currentSortColumn = columnKey;
+        currentSortOrder = 'asc';
+      }
+
+      // Sort the documents array
+      documents.sort((a, b) => {
+        const dataA = a.getData();
+        const dataB = b.getData();
+
+        let valueA = dataA[columnKey];
+        let valueB = dataB[columnKey];
+
+        // Convert timestamps to numbers for sorting if necessary
+        if (columnKey === 'receiveTime' || columnKey === 'chainLockTime') {
+          valueA = parseInt(valueA) || 0;
+          valueB = parseInt(valueB) || 0;
+        }
+
+        if (currentSortOrder === 'asc') {
+          return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+      });
+
+      // Re-render the table with sorted data
+      renderTable();
+
+      // Update the header to reflect the sort order
+      const headers = document.querySelectorAll('th');
+      headers.forEach(header => {
+        header.classList.remove('sorted-asc', 'sorted-desc');
+        if (header.dataset.key === currentSortColumn) {
+          header.classList.add(currentSortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+      });
+    }
+
+    // Function to convert Unix timestamp to a human-readable format
+    function formatTimestamp(timestamp) {
+      if (!timestamp) {
+        return 'N/A';
+      }
+      const date = new Date(timestamp * 1000); // Convert seconds to milliseconds
+      return date.toLocaleString();
+    }
+
+    function base64ToHex(base64String) {
+      const binaryString = atob(base64String); // Decode base64 to binary string
+      return Array.from(binaryString, char => 
+        char.charCodeAt(0).toString(16).padStart(2, '0')
+      ).join('');
+    }
+
+    // Re-pad trimmed hex hash back to 64 characters (32 bytes)
+    function padHashToFullLength(hexString) {
+      return hexString.padStart(64, '0');
+    }
+  </script>
+</body>
+</html>

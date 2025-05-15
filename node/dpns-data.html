@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dash DPNS Names</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding-bottom: 60px;
+      box-sizing: border-box;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: #f0f2f5;
+    }
+    #content {
+      margin: 20px auto;
+      max-width: 1000px;
+      overflow-y: auto;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #012060;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background-color: #008de4;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+    }
+    table, th, td {
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+    }
+    th {
+      background-color: #012060;
+      color: #f0f2f5;
+      text-align: left;
+      position: sticky;
+      top: 0;
+    }
+    tr:nth-child(odd) {
+      background-color: #f9f9f9;
+    }
+    tr:nth-child(even) {
+      background-color: #ffffff;
+    }
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #012060;
+      color: white;
+      text-align: center;
+      padding: 10px;
+    }
+    footer a {
+      color: #008de4;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center; margin-top: 20px; color: #012060;">Dash DPNS Names</h1>
+
+  <div style="text-align: center; margin-top: 20px;">
+    <button onclick="fetchDPNSNames()">Load DPNS Names</button>
+  </div>
+
+  <div id="content"></div>
+
+  <footer>
+    <p>Built using <a href="https://docs.dash.org/platform" target="_blank">Dash Platform</a></p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/dash"></script>
+  <script>
+    const client = new Dash.Client({
+      dapiAddresses: [
+        '157.90.178.32:443',
+        '93.115.172.39:443',
+      ],
+    });
+
+    async function fetchDPNSNames() {
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = 'Loading...';
+
+      try {
+        const documents = await client.platform.documents.get('dpns.domain', { limit: 100 });
+        contentDiv.innerHTML = '';
+
+        if (documents.length === 0) {
+          contentDiv.innerHTML = 'No DPNS names found.';
+          return;
+        }
+
+        const table = document.createElement('table');
+        const header = `<tr><th>Name Label</th><th>Domain</th><th>Owner ID</th></tr>`;
+        table.innerHTML = header;
+
+        documents.forEach(doc => {
+          const data = doc.getData(); // Extract data before using
+          const identityUrl = `https://platform-explorer.com/identity/${data.records.identity}`;
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${data.label}</td>
+            <td>${data.parentDomainName}</td>
+            <td><a href="${identityUrl}" target="_blank">${data.records.identity}</a></td>
+          `;
+          table.appendChild(row);
+});
+
+        contentDiv.appendChild(table);
+      } catch (error) {
+        console.error('Error fetching DPNS names:', error);
+        contentDiv.innerHTML = 'Failed to load DPNS names. Check console for details.';
+      } finally {
+        client.disconnect();
+      }
+    }
+  </script>
+</body>
+</html>
